@@ -1,10 +1,11 @@
-import expredd from "express";
+import express from "express";
 // import type { Request, Response } from "express";
 // import  { serviceMessage }  from "./utils/service.Message.js";
 import TestConn from "./db/Testconnectdb.js";
 import  {router}  from "./routers/Router.js";
-
-const app = expredd();
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 const port  = 1000;
 //   app.get("/",(req:Request,res:Response) => {
 //      res.send({ message: serviceMessage.SUCCESS });
