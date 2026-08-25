@@ -134,50 +134,6 @@ if(!company_name || !c_status || !created_at || !updated_at) {
    })
   }
 }
-// export const EditCPN = async (req:Request, res:Response) => {
-//   const {company_id } = req.params  as CompanyData
-// const  {company_name,c_status, created_at,updated_at}  = req.body as  CompanyData
-// if(!company_id) {
-//   return res.status(402).json({
-//     resultCode:402,
-//     message: serviceMessage.ID_NOT_FOUND
-//   })
-// }
-// if(!company_name || !c_status || !created_at || !updated_at) {
-//   return  res.status(401).json({
-//     resultCode:402,
-//     message: serviceMessage.DATA_NOT_EXIST
-//   })
-// }
-  
-//   try{
-
-   
-//      const sql   =  ` UPDATE company SET COMPANY_NAME=?,C_STATUS=?,CREATED_AT=?,UPDATED_AT=? WHERE COMPANY_ID = ?` ;
-//       const params = [company_name,c_status,created_at,updated_at,company_id]
-//      const [data] = await WaitTransition.promise().query(sql,params)
-//      if(! data || data.affectedRows <= 1)
-//      {
-//       return res.status(402).json({
-//         resultCode:401,
-//         message:serviceMessage.OPERATION_FAILE
-//       })
-//      }
-//      res.status(201).json({
-//       resultCode:201,
-//       meesage:serviceMessage.OPERATION_SUCESS
-//      })
-
-//   }catch(err)
-//   {
-//     console.error("err=>",err)
-//    return res.status(500).json({
-//     resultCode:500,
-//     message:serviceMessage.SERVER_ERROR,err
-//    })
-//   }
-
-
 
 export const EditCPN = async (req: Request, res: Response) => {
   const { company_id } = req.params as CompanyData;
