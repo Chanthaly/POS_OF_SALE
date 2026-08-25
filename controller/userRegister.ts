@@ -2,6 +2,7 @@
 import type { Request, Response } from 'express';
 import type { RowDataPacket } from 'mysql2';
 import waitTransition from '../db/dbconfigHelper.js';
+import { withTransaction } from '../dbconfig/configdb.js';
 import { serviceMessage } from '../utils/service.Message.js'; 
 import { genAccessJWT } from '../utils/JWTHelper.js'
 
@@ -15,6 +16,8 @@ type User = RowDataPacket & {
     password: string;
     role:Role
     created_at: string;
+    bran_id: number,
+    company_id: number,
 };
 
 export const LoginUser = async (req: Request, res: Response) => {
@@ -50,6 +53,19 @@ export const LoginUser = async (req: Request, res: Response) => {
              message:serviceMessage.USER_NOT_FOUND
           })
         }
+                   
+      console.log( "company_id =>",user.company_id)
+                        console.log( "bran_id =>",user.bran_id)
+                                if (
+                                        user.role !== 'superuser' &&
+                                        (user.company_id === null || user.bran_id === null)
+                                ) {
+                        return res.status(422).json({
+                                resultCode: 422,
+                                message: 'USER COMPANY OR BRANCH NOT ASSIGNED'
+                        });
+                    }
+                  
 
         // Check password against the saved bcrypt hash.
         const isMatch = bcry.compareSync(password, user.password);
@@ -63,7 +79,10 @@ export const LoginUser = async (req: Request, res: Response) => {
         const accToken = genAccessJWT({
             user_id: user.user_id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            bran_id: user.bran_id,
+            company_id: user.company_id,
+
         });
 
         return res.status(200).json({
@@ -73,7 +92,9 @@ export const LoginUser = async (req: Request, res: Response) => {
             data: {
                 user_ID: user.user_id,
                 user_Name: user.username,
-                user_role: user.role
+                user_role: user.role,
+                Bran_id: user.bran_id,
+                Company_id: user.company_id,
             }
         });
     } catch (err) {
@@ -86,7 +107,7 @@ export const LoginUser = async (req: Request, res: Response) => {
     }
 };
 export const RegisterUser  = async (req:Request, res:Response) => {
-const  {username,password, role ,created_at}  = req.body as  User
+const  {username,password, role ,created_at, company_id: bodyCompanyId, bran_id: bodyBranchId}  = req.body as User
 
 if(!username || !password || !created_at || !role || !['user','admin','superuser'].includes(role)) {
   return res.status(402).json({
@@ -94,13 +115,43 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
     message: serviceMessage.USER_NOTEXIT
   })
 }
-  
+            const requesterRole = req.user?.user_role;
+            if (requesterRole !== 'admin' && requesterRole !== 'superuser') {
+                return res.status(403).json({
+                    resultCode: 403,
+                    message: 'Only admin or superuser can register users',
+                });
+            }
+
+            // Admins are restricted to their own company and branch.
+            // Superusers may choose the target company and branch.
+            const company_id = requesterRole === 'superuser'
+                ? bodyCompanyId
+                : req.user?.company_id;
+            const bran_id = requesterRole === 'superuser'
+                ? bodyBranchId
+                : req.user?.bran_id;
+            console.log(company_id)
+            console.log(bran_id)
+            if (
+                typeof company_id !== 'number' ||
+                !Number.isInteger(company_id) ||
+                company_id <= 0 ||
+                typeof bran_id !== 'number' ||
+                !Number.isInteger(bran_id) ||
+                bran_id <= 0
+            ) {
+                return res.status(401).json({
+                    resultCode: 401,
+                    message: 'Unauthorized',
+                });
+            }
   try{
      const B_KEY = bcry.genSaltSync(10)
     const  NewPsd  = bcry.hashSync(password,B_KEY)
-     const sql   =  ` INSERT INTO users (username,password,role,created_at) values(?,?,?,?)` ;
-      const params = [username,NewPsd,role,created_at]
-     const data  = await waitTransition.promise().query(sql,params)
+     const sql   =  ` INSERT INTO users (username,password,role,created_at,company_id,bran_id) values(?,?,?,?,?,?)` ;
+      const params = [username,NewPsd,role,created_at, company_id,bran_id]
+    const data = await withTransaction((connection) => connection.query(sql, params))
      if(!data)
      {
       return res.status(401).json({

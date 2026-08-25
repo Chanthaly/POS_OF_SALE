@@ -15,15 +15,22 @@ interface UserJwt extends JwtPayload {
   user_id: number;
   username: string;
   role: 'user' | 'admin' | 'superuser';
+  company_id: number,
+  bran_id: number
 }
 
 // Extend Express Request
 declare global {
   namespace Express {
     interface Request {
-      user_id?: number;
-      user_name?: string;
-      user_role?: 'user' | 'admin' | 'superuser';
+       user?: {
+
+         user_id?: number;
+         user_name?: string;
+         user_role?: 'user' | 'admin' | 'superuser';
+         company_id: number,
+         bran_id: number
+        }
     }
   }
 }
@@ -78,9 +85,13 @@ export const verifyJWT = (
       const user = decoded as UserJwt;
 
       // Save user information into request
-      req.user_id = user.user_id;
-      req.user_name = user.username;
-      req.user_role = user.role;
+      req.user = {
+        user_id: user.user_id,
+        user_name: user.username,
+        user_role: user.role,
+        company_id: user.company_id,
+        bran_id: user.bran_id,
+      };
 
       console.log('JWT verified:', user);
 

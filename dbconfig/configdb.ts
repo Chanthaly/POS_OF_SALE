@@ -1,6 +1,6 @@
 import connect from "../db/dbconfigHelper.js";
 
-export const WaitTranstin = async (callback: (conn: any) => Promise<any>) => {
+export const withTransaction = async (callback: (conn: any) => Promise<any>) => {
   const conn = await connect.promise().getConnection();
 
   try {

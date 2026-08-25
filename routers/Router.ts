@@ -9,10 +9,10 @@ export const router = express.Router();
 
 // Public endpoint
 router.post('/login', LoginUser)
-router.post('/register', RegisterUser)
+router.post('/register', verifyJWT, RegisterUser)
 
 // Protected routes
-router.get("/getusers", verifyJWT, getUsers);
+router.get("/getusers",  getUsers);
 router.get("/getuser/:user_id", verifyJWT, getUserByid);
 router.put("/updateusers/:user_id",EditUser)
 

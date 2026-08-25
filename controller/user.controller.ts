@@ -11,6 +11,8 @@ type User = RowDataPacket & {
   password: string;
   role: 'user' | 'admin' | 'superuser';
  updated_at: string;
+  company_id: number | null;
+  bran_id: number | null;
 };
 
 export const getUsers = async (
@@ -114,7 +116,7 @@ type  UserID = {
 
 export const EditUser  = async (req:Request, res:Response) => {
   const {user_id} = req.params as User;
-const  {username,password, role ,updated_at}  = req.body as  User
+const  {username,password, role ,updated_at, company_id, bran_id}  = req.body as  User
 
 if(!username || !password || !updated_at || !role || !['user','admin','superuser'].includes(role)) {
   return res.status(402).json({
@@ -127,8 +129,8 @@ if(!username || !password || !updated_at || !role || !['user','admin','superuser
 
      const B_KEY = bcrypt.genSaltSync(10)
     const  NewPsd  =  bcrypt.hashSync(password,B_KEY)
-     const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=? WHERE USER_ID = ?` ;
-      const params = [username,NewPsd,role,updated_at,user_id]
+    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?` ;
+     const params = [username,NewPsd,role,updated_at,company_id,bran_id,user_id]
      const data  = await WaitTransition.promise().query(sql,params)
      if(!data)
      {
