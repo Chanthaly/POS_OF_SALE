@@ -99,19 +99,22 @@ type CompanyData   = RowDataPacket  & {
    }
 }
 export const  AddCompanyDATA  = async (req:Request, res:Response) => {
-const  { company_name,c_status,created_at,updated_at }  = req.body as CompanyData;
+const  { company_name,c_status,created_at }  = req.body as CompanyData;
 
-if(!company_name || !c_status || !created_at || !updated_at) {
-  return res.status(402).json({
-    resultCode:402,
-    message: serviceMessage.DATA_NOT_EXIST
-  })
-}
+      console.log(company_name)
+      console.log(c_status)
+      console.log(created_at)
+// if(!company_name || !c_status || !created_at ) {
+//   return res.status(402).json({
+//     resultCode:402,
+//     message: serviceMessage.DATA_NOT_EXIST 
+//   })
+// }
   
   try{
 
-     const sql   =  ` INSERT INTO company (company_name,c_status,created_at,updated_at) values(?,?,?,?)` ;
-      const params = [ company_name,c_status,created_at,updated_at]
+     const sql   =  ` INSERT INTO company (company_name,c_status,created_at) values(?,?,?)` ;
+      const params = [ company_name,c_status,created_at,]
      const data  = await WaitTransition.promise().query(sql,params)
      if(!data)
      {

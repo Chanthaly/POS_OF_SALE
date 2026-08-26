@@ -101,3 +101,18 @@ export const verifyJWT = (
   );
 };
 
+export const requireRole = (...allowedRoles: UserJwt['role'][]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const role = req.user?.user_role;
+
+    if (!role || !allowedRoles.includes(role)) {
+      return res.status(403).json({
+        resultCode: 403,
+        message: 'Forbidden: insufficient permissions',
+      });
+    }
+
+    next();
+  };
+};
+

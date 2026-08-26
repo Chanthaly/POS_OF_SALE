@@ -2,7 +2,7 @@
  import express from "express";
 import {EditUser, getUserByid, getUsers}   from "../controller/user.controller.js";
 import {  LoginUser, RegisterUser } from "../controller/userRegister.js";
-import { verifyJWT } from "../middleware/jwt.middleware.js";
+import { requireRole, verifyJWT } from "../middleware/jwt.middleware.js";
 import { AddCompanyDATA, EditCPN, getCompanyID, getCompanys } from "../controller/Company.js";
 import { Addbran, getBranall, getBranID } from "../controller/Bran.js";
 
@@ -20,7 +20,7 @@ router.put("/updateusers/:user_id",EditUser)
 // company route
 router.get('/getcompanys', getCompanys) 
 router.get('/getcompany/:company_id', getCompanyID) 
-router.post('/addcompanydata',AddCompanyDATA) 
+router.post('/addcompanydata', verifyJWT, requireRole('superuser'), AddCompanyDATA) 
 router.put('/updatecompany/:company_id',EditCPN)
 
 // branc 
