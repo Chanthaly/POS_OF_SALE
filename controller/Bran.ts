@@ -27,14 +27,22 @@ export const  getBranall = async (
    
     `;
 
-    const params: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (req.user?.user_role !== 'superuser') {
+      if (!req.user?.company_id) {
+        return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+      }
+      sql += ` WHERE company_id = ?`;
+      params.push(req.user.company_id);
+    }
 
     // // Search username
     if (
       typeof search === 'string' &&
       search.trim() !== ''
     ) {
-      sql += ` WHERE   bran_name LIKE ?`;
+      sql += ` ${req.user?.user_role === 'superuser' ? 'WHERE' : 'AND'} bran_name LIKE ?`;
       params.push(`${search.trim()}%`);
     }
 
@@ -84,8 +92,11 @@ export const  getBranall = async (
      
      {
 
-  const sql = "SELECT * FROM branc WHERE bran_id = ?"
-        const  [ result] = await WaitTransition.promise().query <Branc[]>(sql, [bran_id]);
+  const isSuperuser = req.user?.user_role === 'superuser';
+  const scopeSql = isSuperuser ? '' : ' AND company_id = ?';
+  const params = isSuperuser ? [bran_id] : [bran_id, req.user?.company_id];
+  const sql = `SELECT * FROM branc WHERE bran_id = ?${scopeSql}`;
+  const [result] = await WaitTransition.promise().query<Branc[]>(sql, params);
         if( result.length === 0) {
           
           return res.status(404).json({

@@ -13,17 +13,17 @@ router.post('/login', LoginUser)
 router.post('/register', verifyJWT, RegisterUser)
 
 // Protected routes
-router.get("/getusers",  getUsers);
+router.get("/getusers", verifyJWT, getUsers);
 router.get("/getuser/:user_id", verifyJWT, getUserByid);
-router.put("/updateusers/:user_id",EditUser)
+router.put("/updateusers/:user_id", verifyJWT, EditUser)
 
 // company route
-router.get('/getcompanys', getCompanys) 
-router.get('/getcompany/:company_id', getCompanyID) 
+router.get('/getcompanys', verifyJWT,getCompanys)
+router.get('/getcompany/:company_id', verifyJWT, getCompanyID)
 router.post('/addcompanydata', verifyJWT, requireRole('superuser'), AddCompanyDATA) 
-router.put('/updatecompany/:company_id',EditCPN)
+router.put('/updatecompany/:company_id', verifyJWT, requireRole('superuser'), EditCPN)
 
 // branc 
-router.get('/getbrans',getBranall)
-router.get('/getbran/:bran_id', getBranID)
-router.post('/postbran',Addbran)
+router.get('/getbrans', verifyJWT, getBranall)
+router.get('/getbran/:bran_id', verifyJWT, getBranID)
+router.post('/postbran', verifyJWT, requireRole('superuser'), Addbran)

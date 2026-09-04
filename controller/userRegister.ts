@@ -9,7 +9,7 @@ import { genAccessJWT } from '../utils/JWTHelper.js'
 import bcry  from 'bcryptjs'
 
 
- type Role  = 'user'|'admin'|'superuser'
+ type Role  = 'user'|'admin'|'superuser'|'cashier'|'manager'|'staff'
 type User = RowDataPacket & {
     user_id: number;
     username: string;
@@ -108,15 +108,21 @@ export const LoginUser = async (req: Request, res: Response) => {
 };
 export const RegisterUser  = async (req:Request, res:Response) => {
 const  {username,password, role ,created_at, company_id: bodyCompanyId, bran_id: bodyBranchId}  = req.body as User
+console.log(username)
+console.log(password)
+console.log(role)
+console.log(created_at)
+console.log(bodyCompanyId)
+console.log(bodyBranchId)
 
-if(!username || !password || !created_at || !role || !['user','admin','superuser'].includes(role)) {
+if(!username || !password || !created_at || !role || !['user','admin','superuser','manager','staff','cashier'].includes(role)) {
   return res.status(402).json({
     resultCode:402,
     message: serviceMessage.USER_NOTEXIT
   })
 }
             const requesterRole = req.user?.user_role;
-            if (requesterRole !== 'admin' && requesterRole !== 'superuser') {
+            if (requesterRole !== 'admin'  && requesterRole !== 'superuser' && requesterRole !=='manager') {
                 return res.status(403).json({
                     resultCode: 403,
                     message: 'Only admin or superuser can register users',
@@ -125,11 +131,8 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
 
             // Admins are restricted to their own company and branch.
             // Superusers may choose the target company and branch.
-            const company_id = requesterRole === 'superuser'
-                ? bodyCompanyId
-                : req.user?.company_id;
-            const bran_id = requesterRole === 'superuser'
-                ? bodyBranchId
+            const company_id = requesterRole === 'superuser'   ? bodyCompanyId   : req.user?.company_id;
+            const bran_id = requesterRole === 'superuser'   ? bodyBranchId
                 : req.user?.bran_id;
             console.log(company_id)
             console.log(bran_id)

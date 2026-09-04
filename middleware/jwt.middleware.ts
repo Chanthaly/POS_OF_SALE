@@ -14,9 +14,9 @@ const JWT_SECRET = 'datetimenew----a@2026datnow--selectkey';
 interface UserJwt extends JwtPayload {
   user_id: number;
   username: string;
-  role: 'user' | 'admin' | 'superuser';
-  company_id: number,
-  bran_id: number
+  role: 'user' | 'admin' | 'superuser'|'manager'|'cashier'|'staff';
+  company_id: number | null,
+  bran_id: number | null
 }
 
 // Extend Express Request
@@ -27,9 +27,9 @@ declare global {
 
          user_id?: number;
          user_name?: string;
-         user_role?: 'user' | 'admin' | 'superuser';
-         company_id: number,
-         bran_id: number
+         user_role?: 'user' | 'admin' | 'superuser'|'manager'|'cashier'|'staff';
+         company_id: number | null,
+         bran_id: number | null
         }
     }
   }

@@ -18,14 +18,22 @@ export const getCompanys = async (
    
     `;
 
-    const params: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (req.user?.user_role !== 'superuser') {
+      if (!req.user?.company_id) {
+        return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+      }
+      sql += ` WHERE company_id = ?`;
+      params.push(req.user.company_id);
+    }
 
     // // Search username
     if (
       typeof search === 'string' &&
       search.trim() !== ''
     ) {
-      sql += ` WHERE   company_name LIKE ?`;
+      sql += ` ${req.user?.user_role === 'superuser' ? 'WHERE' : 'AND'} company_name LIKE ?`;
       params.push(`${search.trim()}%`);
     }
 
@@ -74,7 +82,12 @@ type CompanyData   = RowDataPacket  & {
      {
 
 
-        const  result  = await WaitTransition.promise().query("SELECT * FROM company WHERE company_id = ?",[company_id]);
+        const isSuperuser = req.user?.user_role === 'superuser';
+        const requesterCompanyId = req.user?.company_id;
+        if (!isSuperuser && requesterCompanyId !== Number(company_id)) {
+          return res.status(403).json({ resultCode: 403, message: 'Forbidden' });
+        }
+        const [result] = await WaitTransition.promise().query<CompanyData[]>("SELECT * FROM company WHERE company_id = ?",[company_id]);
         if(!result || result.length <= 0) {
             return res.status(404).json({
                 resultCode:404,

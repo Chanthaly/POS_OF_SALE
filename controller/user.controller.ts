@@ -21,6 +21,13 @@ export const getUsers = async (
 ) => {
   try {
     const { search } = req.query;
+    const isSuperuser = req.user?.user_role === 'superuser';
+    const companyId = req.user?.company_id;
+    const branchId = req.user?.bran_id;
+
+    if (!isSuperuser && (!companyId || !branchId)) {
+      return res.status(403).json({ resultCode: 403, message: 'User scope is not assigned' });
+    }
 
     let sql = `
       SELECT
@@ -31,14 +38,19 @@ export const getUsers = async (
       FROM users
     `;
 
-    const params: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (!isSuperuser) {
+      sql += ` WHERE company_id = ? AND bran_id = ?`;
+      params.push(companyId!, branchId!);
+    }
 
     // Search username
     if (
       typeof search === 'string' &&
       search.trim() !== ''
     ) {
-      sql += ` WHERE username LIKE ?`;
+      sql += `${isSuperuser ? ' WHERE' : ' AND'} username LIKE ?`;
       params.push(`${search.trim()}%`);
     }
 
@@ -84,13 +96,17 @@ type  UserID = {
             message:  serviceMessage.ID_NOT_FOUND
         })
      }
-     try
-     
-     {
-
-
-        const  result  = await WaitTransition.promise().query("SELECT * FROM users WHERE user_id = ?",[user_id]);
-        if(!result || result.length <= 0) {
+      try {
+        const isSuperuser = req.user?.user_role === 'superuser';
+        const companyId = req.user?.company_id;
+        const branchId = req.user?.bran_id;
+        const scopeSql = isSuperuser ? '' : ' AND company_id = ? AND bran_id = ?';
+        const scopeParams = isSuperuser ? [user_id] : [user_id, companyId, branchId];
+        const [result] = await WaitTransition.promise().query<User[]>(
+          `SELECT * FROM users WHERE user_id = ?${scopeSql}`,
+          scopeParams
+        );
+        if (result.length === 0) {
             return res.status(404).json({
                 resultCode:404,
                 message:serviceMessage.USER_NOT_FOUND
@@ -129,8 +145,14 @@ if(!username || !password || !updated_at || !role || !['user','admin','superuser
 
      const B_KEY = bcrypt.genSaltSync(10)
     const  NewPsd  =  bcrypt.hashSync(password,B_KEY)
-    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?` ;
-     const params = [username,NewPsd,role,updated_at,company_id,bran_id,user_id]
+    const isSuperuser = req.user?.user_role === 'superuser';
+    const scopedCompanyId = isSuperuser ? company_id : req.user?.company_id;
+    const scopedBranchId = isSuperuser ? bran_id : req.user?.bran_id;
+    const scopeSql = isSuperuser ? '' : ' AND COMPANY_ID = ? AND BRAN_ID = ?';
+    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?${scopeSql}` ;
+     const params = isSuperuser
+       ? [username,NewPsd,role,updated_at,scopedCompanyId,scopedBranchId,user_id]
+       : [username,NewPsd,role,updated_at,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId,scopedBranchId];
      const data  = await WaitTransition.promise().query(sql,params)
      if(!data)
      {
