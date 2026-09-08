@@ -134,7 +134,7 @@ export const EditUser  = async (req:Request, res:Response) => {
   const {user_id} = req.params as User;
 const  {username,password, role ,updated_at, company_id, bran_id}  = req.body as  User
 
-if(!username || !password || !updated_at || !role || !['user','admin','superuser'].includes(role)) {
+if(!username || !password || !updated_at || !role || !['user','admin','superuser','staff','cashier','manager'].includes(role)) {
   return res.status(402).json({
     resultCode:402,
     message: serviceMessage.USER_NOTEXIT

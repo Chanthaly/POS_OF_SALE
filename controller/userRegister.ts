@@ -21,8 +21,9 @@ type User = RowDataPacket & {
 };
 
 export const LoginUser = async (req: Request, res: Response) => {
-    const { username, password } = req.body as User
-
+    const { username, password } = (req.body ?? {}) as Partial<User>
+                console.log(username)
+                console.log(password)
     if (!username || !password) {
         return res.status(401).json({
             resultCode: 401,
@@ -107,7 +108,7 @@ export const LoginUser = async (req: Request, res: Response) => {
     }
 };
 export const RegisterUser  = async (req:Request, res:Response) => {
-const  {username,password, role ,created_at, company_id: bodyCompanyId, bran_id: bodyBranchId}  = req.body as User
+const  {username,password, role ,created_at, company_id: bodyCompanyId, bran_id: bodyBranchId}  = (req.body ?? {}) as Partial<User>
 console.log(username)
 console.log(password)
 console.log(role)
