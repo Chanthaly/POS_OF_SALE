@@ -57,10 +57,7 @@ export const LoginUser = async (req: Request, res: Response) => {
                    
       console.log( "company_id =>",user.company_id)
                         console.log( "bran_id =>",user.bran_id)
-                                if (
-                                        user.role !== 'superuser' &&
-                                        (user.company_id === null || user.bran_id === null)
-                                ) {
+                                if (user.company_id === null) {
                         return res.status(422).json({
                                 resultCode: 422,
                                 message: 'USER COMPANY OR BRANCH NOT ASSIGNED'
@@ -130,20 +127,16 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
                 });
             }
 
-            // Admins are restricted to their own company and branch.
-            // Superusers may choose the target company and branch.
-            const company_id = requesterRole === 'superuser'   ? bodyCompanyId   : req.user?.company_id;
-            const bran_id = requesterRole === 'superuser'   ? bodyBranchId
-                : req.user?.bran_id;
+            // A superuser is the global system owner and may choose any company/branch.
+            // A null branch means the user can work with every branch in that company.
+            const company_id = requesterRole === 'superuser' ? (bodyCompanyId ?? null) : req.user?.company_id;
+            const bran_id = requesterRole === 'superuser' ? (bodyBranchId ?? null) : req.user?.bran_id;
             console.log(company_id)
             console.log(bran_id)
             if (
-                typeof company_id !== 'number' ||
-                !Number.isInteger(company_id) ||
-                company_id <= 0 ||
-                typeof bran_id !== 'number' ||
-                !Number.isInteger(bran_id) ||
-                bran_id <= 0
+                (company_id !== null && (typeof company_id !== 'number' || !Number.isInteger(company_id) || company_id <= 0)) ||
+                (role !== 'superuser' && company_id === null) ||
+                (bran_id !== null && (typeof bran_id !== 'number' || !Number.isInteger(bran_id) || bran_id <= 0))
             ) {
                 return res.status(401).json({
                     resultCode: 401,
@@ -151,6 +144,18 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
                 });
             }
   try{
+        if (bran_id !== null && company_id !== null) {
+            const [branchRows] = await waitTransition.promise().query<RowDataPacket[]>(
+                'SELECT bran_id FROM branc WHERE bran_id = ? AND company_id = ?',
+                [bran_id, company_id]
+            );
+            if (!branchRows.length) {
+                return res.status(400).json({ resultCode: 400, message: 'Branch does not belong to owner company' });
+            }
+        }
+                if (bran_id !== null && company_id === null) {
+                    return res.status(400).json({ resultCode: 400, message: 'A branch requires a company' });
+                }
      const B_KEY = bcry.genSaltSync(10)
     const  NewPsd  = bcry.hashSync(password,B_KEY)
      const sql   =  ` INSERT INTO users (username,password,role,created_at,company_id,bran_id) values(?,?,?,?,?,?)` ;

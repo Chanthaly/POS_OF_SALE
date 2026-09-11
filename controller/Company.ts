@@ -20,12 +20,13 @@ export const getCompanys = async (
 
     const params: (string | number)[] = [];
 
-    if (req.user?.user_role !== 'superuser') {
-      if (!req.user?.company_id) {
-        return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
-      }
+    const isSuperuser = req.user?.user_role === 'superuser';
+    if (!isSuperuser && !req.user?.company_id) {
+      return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+    }
+    if (!isSuperuser) {
       sql += ` WHERE company_id = ?`;
-      params.push(req.user.company_id);
+      params.push(req.user!.company_id!);
     }
 
     // // Search username
@@ -33,7 +34,7 @@ export const getCompanys = async (
       typeof search === 'string' &&
       search.trim() !== ''
     ) {
-      sql += ` ${req.user?.user_role === 'superuser' ? 'WHERE' : 'AND'} company_name LIKE ?`;
+      sql += `${isSuperuser ? ' WHERE' : ' AND'} company_name LIKE ?`;
       params.push(`${search.trim()}%`);
     }
 
@@ -82,9 +83,8 @@ type CompanyData   = RowDataPacket  & {
      {
 
 
-        const isSuperuser = req.user?.user_role === 'superuser';
         const requesterCompanyId = req.user?.company_id;
-        if (!isSuperuser && requesterCompanyId !== Number(company_id)) {
+        if (req.user?.user_role !== 'superuser' && (!requesterCompanyId || requesterCompanyId !== Number(company_id))) {
           return res.status(403).json({ resultCode: 403, message: 'Forbidden' });
         }
         const [result] = await WaitTransition.promise().query<CompanyData[]>("SELECT * FROM company WHERE company_id = ?",[company_id]);

@@ -29,12 +29,13 @@ export const  getBranall = async (
 
     const params: (string | number)[] = [];
 
-    if (req.user?.user_role !== 'superuser') {
-      if (!req.user?.company_id) {
-        return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
-      }
+    const isSuperuser = req.user?.user_role === 'superuser';
+    if (!isSuperuser && !req.user?.company_id) {
+      return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+    }
+    if (!isSuperuser) {
       sql += ` WHERE company_id = ?`;
-      params.push(req.user.company_id);
+      params.push(req.user!.company_id!);
     }
 
     // // Search username
@@ -42,7 +43,7 @@ export const  getBranall = async (
       typeof search === 'string' &&
       search.trim() !== ''
     ) {
-      sql += ` ${req.user?.user_role === 'superuser' ? 'WHERE' : 'AND'} bran_name LIKE ?`;
+      sql += `${isSuperuser ? ' WHERE' : ' AND'} bran_name LIKE ?`;
       params.push(`${search.trim()}%`);
     }
 
@@ -92,9 +93,11 @@ export const  getBranall = async (
      
      {
 
-  const isSuperuser = req.user?.user_role === 'superuser';
-  const scopeSql = isSuperuser ? '' : ' AND company_id = ?';
-  const params = isSuperuser ? [bran_id] : [bran_id, req.user?.company_id];
+  if (req.user?.user_role !== 'superuser' && !req.user?.company_id) {
+    return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+  }
+  const scopeSql = req.user?.user_role === 'superuser' ? '' : ' AND company_id = ?';
+  const params = req.user?.user_role === 'superuser' ? [bran_id] : [bran_id, req.user!.company_id!];
   const sql = `SELECT * FROM branc WHERE bran_id = ?${scopeSql}`;
   const [result] = await WaitTransition.promise().query<Branc[]>(sql, params);
         if( result.length === 0) {
@@ -122,14 +125,16 @@ export const  getBranall = async (
    }
 }
 export const  Addbran  = async (req:Request, res:Response) => {
-const  { bran_name,bran_status, created_at,company_id,updated_at }  = req.body as Branc;
+const  { bran_name,bran_status, created_at,company_id: bodyCompanyId}  = req.body as Branc;
+const isSuperuser = req.user?.user_role === 'superuser';
+const company_id = isSuperuser ? bodyCompanyId : req.user?.company_id;
 
 console.log(bran_name)
 console.log(bran_status)
 console.log(created_at)
 console.log(company_id)
-console.log(updated_at)
-if(!bran_name || !bran_status ||  !company_id || !created_at || !updated_at) {
+
+if(!bran_name || !bran_status || !company_id || !created_at || (!isSuperuser && bodyCompanyId !== undefined && bodyCompanyId !== company_id)) {
   return res.status(402).json({
     resultCode:402,
     message: serviceMessage.DATA_NOT_EXIST
@@ -138,8 +143,8 @@ if(!bran_name || !bran_status ||  !company_id || !created_at || !updated_at) {
   
   try{
 
-     const sql   =  ` INSERT INTO branc (bran_name,bran_status,created_at,company_id ,updated_at) values(?,?,?,?,?)` ;
-      const params = [ bran_name,bran_status,created_at,company_id,updated_at]
+     const sql   =  ` INSERT INTO branc (bran_name,bran_status,created_at,company_id ) values(?,?,?,?)` ;
+      const params = [ bran_name,bran_status,created_at,company_id]
      const data  = await WaitTransition.promise().query(sql,params)
      if(!data)
      {
