@@ -4,6 +4,7 @@ import type { RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs'
 import WaitTransition from '../db/dbconfigHelper.js';
 import { serviceMessage } from '../utils/service.Message.js';
+import type { ResultSetHeader } from 'mysql2';
 
 type User = RowDataPacket & {
   user_id: number;
@@ -12,6 +13,7 @@ type User = RowDataPacket & {
   role: 'user' | 'admin' | 'superuser';
  updated_at: string;
   company_id: number | null;
+  status: 'active' | 'inactive'
   bran_id: number | null;
 };
 
@@ -34,7 +36,8 @@ export const getUsers = async (
         user_id,
         username,
         role,
-        created_at
+        created_at, 
+        status
       FROM users
     `;
 
@@ -139,9 +142,9 @@ type  UserID = {
 
 export const EditUser  = async (req:Request, res:Response) => {
   const {user_id} = req.params as User;
-const  {username,password, role ,updated_at, company_id, bran_id}  = req.body as  User
+const  {username,password, role ,updated_at,status, company_id, bran_id}  = req.body as  User
 
-if(!username || !password || !updated_at || !role || !['user','admin','superuser','staff','cashier','manager'].includes(role)) {
+if(!username || !password ||  !updated_at || !role || !['user','admin','superuser','staff','cashier','manager'].includes(role) ||  !['active','inactive'].includes(status)) {
   return res.status(402).json({
     resultCode:402,
     message: serviceMessage.USER_NOTEXIT
@@ -159,23 +162,23 @@ if(!username || !password || !updated_at || !role || !['user','admin','superuser
       return res.status(403).json({ resultCode: 403, message: 'User company is not assigned or does not match owner company' });
     }
     const scopeSql = !isSuperuser && scopedBranchId ? ' AND COMPANY_ID = ? AND BRAN_ID = ?' : !isSuperuser ? ' AND COMPANY_ID = ?' : '';
-    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?${scopeSql}` ;
+    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?, STATUS=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?${scopeSql}` ;
      const params = isSuperuser
-       ? [username,NewPsd,role,updated_at,scopedCompanyId ?? null,scopedBranchId ?? null,user_id]
+       ? [username,NewPsd,role,updated_at, status,scopedCompanyId ?? null,scopedBranchId ?? null,user_id]
        : !isSuperuser && scopedBranchId
-       ? [username,NewPsd,role,updated_at,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId,scopedBranchId]
-       : [username,NewPsd,role,updated_at,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId];
-     const data  = await WaitTransition.promise().query(sql,params)
-     if(!data)
+       ? [username,NewPsd,role,updated_at,status,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId,scopedBranchId]
+       : [username,NewPsd,role,updated_at,status,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId];
+     const [result] = await WaitTransition.promise().query<ResultSetHeader>(sql,params)
+     if (result.affectedRows < 1)
      {
-      return res.status(401).json({
-        resultCode:401,
+      return res.status(404).json({
+        resultCode:404,
         message:serviceMessage.USER_NOT_FOUND
       })
      }
-     res.status(201).json({
-      resultCode:201,
-      meesage:serviceMessage.OPERATION_SUCESS
+     return res.status(200).json({
+      resultCode:200,
+      message:serviceMessage.OPERATION_SUCESS
      })
 
   }catch(err)

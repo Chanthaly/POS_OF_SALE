@@ -10,12 +10,14 @@ import bcry  from 'bcryptjs'
 
 
  type Role  = 'user'|'admin'|'superuser'|'cashier'|'manager'|'staff'
+ type  Status = 'active' | 'inactive'
 type User = RowDataPacket & {
     user_id: number;
     username: string;
     password: string;
     role:Role
     created_at: string;
+    status:Status
     bran_id: number,
     company_id: number,
 };
@@ -82,6 +84,12 @@ export const LoginUser = async (req: Request, res: Response) => {
             company_id: user.company_id,
 
         });
+        if(user.status === 'inactive') {
+            return res.status(401).json({
+                resultCode: 401,
+                message: "Adminblock user  plase tryagrin"
+            })
+        }
 
         return res.status(200).json({
             resultCode: 200,
