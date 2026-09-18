@@ -141,8 +141,24 @@ type  UserID = {
 }
 
 export const EditUser  = async (req:Request, res:Response) => {
-  const {user_id} = req.params as User;
+  const userId = Number(req.params.user_id);
 const  {username,password, role ,updated_at,status, company_id, bran_id}  = req.body as  User
+
+console.log(userId)
+console.log(username)
+console.log(password)
+console.log(role)
+console.log(updated_at)
+console.log(status)
+
+
+
+if (!Number.isInteger(userId) || userId <= 0) {
+  return res.status(400).json({
+    resultCode: 400,
+    message: serviceMessage.ID_NOT_FOUND
+  });
+}
 
 if(!username || !password ||  !updated_at || !role || !['user','admin','superuser','staff','cashier','manager'].includes(role) ||  !['active','inactive'].includes(status)) {
   return res.status(402).json({
@@ -152,29 +168,51 @@ if(!username || !password ||  !updated_at || !role || !['user','admin','superuse
 }
   
   try{
-
-     const B_KEY = bcrypt.genSaltSync(10)
-    const  NewPsd  =  bcrypt.hashSync(password,B_KEY)
     const isSuperuser = req.user?.user_role === 'superuser';
+
     const scopedCompanyId = isSuperuser ? company_id : req.user?.company_id;
     const scopedBranchId = isSuperuser ? bran_id : req.user?.bran_id;
     if (!isSuperuser && !scopedCompanyId) {
       return res.status(403).json({ resultCode: 403, message: 'User company is not assigned or does not match owner company' });
     }
-    const scopeSql = !isSuperuser && scopedBranchId ? ' AND COMPANY_ID = ? AND BRAN_ID = ?' : !isSuperuser ? ' AND COMPANY_ID = ?' : '';
-    const sql   =  ` UPDATE users SET USERNAME=?,PASSWORD=?,ROLE=?,UPDATED_AT=?, STATUS=?,COMPANY_ID=?,BRAN_ID=? WHERE USER_ID = ?${scopeSql}` ;
-     const params = isSuperuser
-       ? [username,NewPsd,role,updated_at, status,scopedCompanyId ?? null,scopedBranchId ?? null,user_id]
-       : !isSuperuser && scopedBranchId
-       ? [username,NewPsd,role,updated_at,status,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId,scopedBranchId]
-       : [username,NewPsd,role,updated_at,status,scopedCompanyId,scopedBranchId,user_id,scopedCompanyId];
+
+     const [duplicateUsers] = await WaitTransition.promise().query<RowDataPacket[]>(
+       'SELECT user_id FROM users WHERE username = ? AND company_id <=> ? AND bran_id <=> ? AND user_id <> ?',
+       [username, scopedCompanyId ?? null, scopedBranchId ?? null, userId]
+     );
+     if (duplicateUsers.length > 0) {
+       return res.status(409).json({
+         resultCode: 409,
+         message: serviceMessage.USER_ALREADY_EXIST
+       });
+     }
+
+     const B_KEY = bcrypt.genSaltSync(10)
+    const  NewPsd  =  bcrypt.hashSync(password,B_KEY)
+    let scopeSql = '';
+    const params: (string | number)[] = [username, NewPsd, role, updated_at, status, userId];
+    if (!isSuperuser) {
+      scopeSql += ' AND COMPANY_ID = ?';
+      params.push(scopedCompanyId!);
+      if (scopedBranchId) {
+        scopeSql += ' AND BRAN_ID = ?';
+        params.push(scopedBranchId);
+      }
+    }
+    const sql = `UPDATE users SET USERNAME=?, PASSWORD=?, ROLE=?, UPDATED_AT=?, STATUS=? WHERE USER_ID = ?${scopeSql}`;
      const [result] = await WaitTransition.promise().query<ResultSetHeader>(sql,params)
      if (result.affectedRows < 1)
      {
-      return res.status(404).json({
-        resultCode:404,
-        message:serviceMessage.USER_NOT_FOUND
-      })
+       const [matchedUsers] = await WaitTransition.promise().query<RowDataPacket[]>(
+         `SELECT user_id FROM users WHERE user_id = ?${scopeSql}`,
+         [userId, ...params.slice(6)]
+       );
+       if (matchedUsers.length === 0) {
+         return res.status(404).json({
+           resultCode: 404,
+           message: serviceMessage.USER_NOT_FOUND
+         });
+       }
      }
      return res.status(200).json({
       resultCode:200,

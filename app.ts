@@ -6,6 +6,7 @@ import  {router}  from "./routers/Router.js";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads'));
 const port  = 1000;
 //   app.get("/",(req:Request,res:Response) => {
 //      res.send({ message: serviceMessage.SUCCESS });

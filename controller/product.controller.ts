@@ -32,7 +32,14 @@ export const getProducts = async (req: Request, res: Response) => {
     const scope = branchScope(req, req.query.bran_id);
     if (!scope) return res.status(403).json({ resultCode: 403, message: 'Invalid branch scope' });
     const params: (string | number)[] = [];
-    let sql = 'SELECT p.p_name, p.p_code, p.p_img,  pt.Ptype_name,  pst.stock_amount  pr.cost_price, pr.sale_price, p.created_at,    b.bran_name  FROM product p INNER JOIN branc b ON b.bran_id = p.bran_id'
+    let sql = `SELECT p.p_name, p.p_code, p.p_img, pt.Ptype_name, pst.stock_amount,
+      pr.cost_price_item, pr.cost_price_pack, pr.sale_price_pack, pr.sale_price_items,
+      p.created_at, b.bran_name
+      FROM product p
+      INNER JOIN branc b ON b.bran_id = p.bran_id
+      LEFT JOIN p_type pt ON pt.p_id = p.p_id
+      LEFT JOIN p_stock pst ON pst.p_id = p.p_id
+      LEFT JOIN p_price pr ON pr.p_id = p.p_id`
     const conditions: string[] = [];
     if (!scope.isSuperuser) {
       conditions.push('b.company_id = ?');
@@ -67,7 +74,15 @@ export const getProductById = async (req: Request, res: Response) => {
     const scope = branchScope(req);
     if (!scope) return res.status(403).json({ resultCode: 403, message: 'User scope is not assigned' });
     const params: (string | number)[] = [productId];
-    let sql = 'SELECT p.p_name , p.p_code,p.p_img,p.bran_name FROM product p INNER JOIN branc b ON b.bran_id = p.bran_id WHERE p.p_id = ?';
+     let sql = `SELECT p.p_name, p.p_code, p.p_img, pt.Ptype_name, pst.stock_amount,
+      pr.cost_price_item, pr.cost_price_pack, pr.sale_price_pack, pr.sale_price_items,
+      p.created_at, b.bran_name
+      FROM product p
+      INNER JOIN branc b ON b.bran_id = p.bran_id
+      LEFT JOIN p_type pt ON pt.p_id = p.p_id
+      LEFT JOIN p_stock pst ON pst.p_id = p.p_id
+      LEFT JOIN p_price pr ON pr.p_id = p.p_id
+      WHERE p.p_id = ?`;
     if (!scope.isSuperuser) {
       sql += ' AND b.company_id = ?';
       params.push(scope.companyId!);
@@ -84,12 +99,26 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 export const addProduct = async (req: Request, res: Response) => {
-  const { p_name, p_code, p_img, created_at, bran_id: bodyBranchId, pty_id } = req.body as Partial<Product>;
+  const {
+    p_name,
+    p_code,
+    p_img,
+    created_at,
+    bran_id: bodyBranchId,
+    pty_id,
+    Ptype_id: bodyProductTypeId,
+    productTypeId: requestProductTypeId,
+  } = req.body as Partial<Product> & { Ptype_id?: unknown; productTypeId?: unknown };
   const scope = branchScope(req);
-  const targetBranchId = scope?.isSuperuser ? positiveInt(bodyBranchId) : (scope?.branchId ?? positiveInt(bodyBranchId));
-  const productTypeId = positiveInt(pty_id);
-  if (!p_name?.trim() || !p_code?.trim() || !productTypeId || !scope || !targetBranchId) {
-    return res.status(400).json({ resultCode: 400, message: serviceMessage.DATA_NOT_EXIST });
+  if (!scope) return res.status(403).json({ resultCode: 403, message: 'User scope is not assigned' });
+  const targetBranchId = scope.isSuperuser ? positiveInt(bodyBranchId) : scope.branchId;
+  const productTypeId = positiveInt(pty_id ?? bodyProductTypeId ?? requestProductTypeId);
+  if (!targetBranchId) {
+    return res.status(403).json({ resultCode: 403, message: 'User branch is not assigned' });
+  }
+  console.log('Add product request:', { p_name, p_code, p_img, created_at,productTypeId });
+  if (!p_name?.trim() || !p_code?.trim() || !productTypeId) {
+    return res.status(400).json({ resultCode: 400, message: 'p_name, p_code and product type ID are required' });
   }
   try {
     const [branch] = await WaitTransition.promise().query<RowDataPacket[]>(

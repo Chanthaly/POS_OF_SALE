@@ -13,8 +13,9 @@ export const checkCompanyActive = async (
   next: NextFunction
 ) => {
   try {
-    const companyId = req.user?.company_id;
 
+    const companyId = req.user?.company_id;
+        
     if (!companyId) {
       return res.status(403).json({
         resultCode: 403,

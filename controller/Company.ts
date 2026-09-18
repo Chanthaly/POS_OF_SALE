@@ -157,7 +157,6 @@ export const EditCPN = async (req: Request, res: Response) => {
   const {
     company_name,
     c_status,
-    created_at,
     updated_at
   } = req.body as CompanyData;
 
@@ -168,7 +167,7 @@ export const EditCPN = async (req: Request, res: Response) => {
     });
   }
 
-  if (!company_name || !c_status || !created_at || !updated_at) {
+  if (!company_name || !c_status || !updated_at) {
     return res.status(401).json({
       resultCode: 402,
       message: serviceMessage.DATA_NOT_EXIST
@@ -180,7 +179,6 @@ export const EditCPN = async (req: Request, res: Response) => {
       UPDATE company
       SET COMPANY_NAME = ?,
           C_STATUS = ?,
-          CREATED_AT = ?,
           UPDATED_AT = ?
       WHERE COMPANY_ID = ?
     `;
@@ -188,7 +186,6 @@ export const EditCPN = async (req: Request, res: Response) => {
     const params = [
       company_name,
       c_status,
-      created_at,
       updated_at,
       company_id
     ];

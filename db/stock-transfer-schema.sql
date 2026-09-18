@@ -10,6 +10,42 @@ CREATE TABLE product (
   CONSTRAINT fk_product_branch FOREIGN KEY (bran_id) REFERENCES branc (bran_id)
 );
 
+CREATE TABLE p_stock (
+  stock_id INT AUTO_INCREMENT PRIMARY KEY,
+  stock_amount INT NOT NULL DEFAULT 0,
+  user_id INT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  p_id INT NOT NULL,
+  UNIQUE KEY uq_p_stock_product (p_id),
+  CONSTRAINT fk_p_stock_user FOREIGN KEY (user_id) REFERENCES users (user_id),
+  CONSTRAINT fk_p_stock_product FOREIGN KEY (p_id) REFERENCES product (p_id),
+  CONSTRAINT chk_p_stock_amount CHECK (stock_amount >= 0)
+);
+
+CREATE TABLE p_type (
+  Ptype_id INT AUTO_INCREMENT PRIMARY KEY,
+  Ptype_name VARCHAR(34) NOT NULL,
+  p_id INT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_p_type_product FOREIGN KEY (p_id) REFERENCES product (p_id)
+);
+
+CREATE TABLE p_price (
+  price_id INT AUTO_INCREMENT PRIMARY KEY,
+  p_id INT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  cost_price_item DECIMAL(10, 2) NOT NULL,
+  cost_price_pack DECIMAL(10, 2) NOT NULL,
+  sale_price_pack DECIMAL(10, 2) NOT NULL,
+  sale_price_items DECIMAL(10, 2) NOT NULL,
+  CONSTRAINT fk_p_price_product FOREIGN KEY (p_id) REFERENCES product (p_id),
+  CONSTRAINT chk_p_price_cost_item CHECK (cost_price_item >= 0),
+  CONSTRAINT chk_p_price_cost_pack CHECK (cost_price_pack >= 0),
+  CONSTRAINT chk_p_price_sale_pack CHECK (sale_price_pack >= 0),
+  CONSTRAINT chk_p_price_sale_items CHECK (sale_price_items >= 0)
+);
+
 CREATE TABLE st_transfers (
   tr_id INT AUTO_INCREMENT PRIMARY KEY,
   transfer_no VARCHAR(60) NOT NULL UNIQUE,

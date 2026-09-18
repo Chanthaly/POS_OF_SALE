@@ -19,13 +19,13 @@ type User = RowDataPacket & {
     created_at: string;
     status:Status
     bran_id: number,
-    company_id: number,
+    company_id: number | null,
+    c_status: Status
 };
 
 export const LoginUser = async (req: Request, res: Response) => {
     const { username, password } = (req.body ?? {}) as Partial<User>
                 console.log(username)
-                console.log(password)
     if (!username || !password) {
         return res.status(401).json({
             resultCode: 401,
@@ -34,7 +34,13 @@ export const LoginUser = async (req: Request, res: Response) => {
     }
 
     try {
-        const sql = 'SELECT * FROM users WHERE username = ?';
+        const sql = `
+            SELECT u.*, c.c_status
+            FROM users u
+            LEFT JOIN company c ON c.company_id = u.company_id
+            WHERE u.username = ?
+            ORDER BY u.user_id DESC
+        `;
 
         const [rows] = await waitTransition
             .promise()
@@ -48,31 +54,45 @@ export const LoginUser = async (req: Request, res: Response) => {
             });
         }
 
-        // Get the first matching user
-        const user = rows[0];
-        if(!user) {
-          return res.status(404).json({
-             resultCode:404,
-             message:serviceMessage.USER_NOT_FOUND
-          })
-        }
-                   
-      console.log( "company_id =>",user.company_id)
-                        console.log( "bran_id =>",user.bran_id)
-                                if (user.company_id === null) {
-                        return res.status(422).json({
-                                resultCode: 422,
-                                message: 'USER COMPANY OR BRANCH NOT ASSIGNED'
-                        });
-                    }
-                  
-
-        // Check password against the saved bcrypt hash.
-        const isMatch = bcry.compareSync(password, user.password);
-        if (!isMatch) {
+        const matchingUsers = rows.filter((candidate) => bcry.compareSync(password, candidate.password));
+        if (matchingUsers.length === 0) {
             return res.status(401).json({
                 resultCode: 401,
                 message: 'INVALID PASSWORD'
+            });
+        }
+        if (matchingUsers.length > 1) {
+            return res.status(409).json({
+                resultCode: 409,
+                message: 'Username and password match multiple users'
+            });
+        }
+
+        const user = matchingUsers[0];
+        if (!user) {
+            return res.status(404).json({
+                resultCode: 404,
+                message: serviceMessage.USER_NOT_FOUND
+            });
+        }
+                   
+      console.log( "company_id =>",user.company_id)
+        if( user.role  !== 'superuser') {
+
+            
+            console.log( "bran_id =>",user.bran_id)
+            if (user.company_id === null || user.bran_id === null) {
+                return res.status(422).json({
+                    resultCode: 422,
+                    message: 'USER COMPANY OR BRANCH NOT ASSIGNED'
+                });
+            }
+           
+        }
+        if (user.role !== 'superuser' && user.c_status !== 'active') {
+            return res.status(403).json({
+                resultCode: 403,
+                message: 'Company is inactive'
             });
         }
 
