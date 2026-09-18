@@ -158,7 +158,9 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
             // A superuser is the global system owner and may choose any company/branch.
             // A null branch means the user can work with every branch in that company.
             const company_id = requesterRole === 'superuser' ? (bodyCompanyId ?? null) : req.user?.company_id;
-            const bran_id = requesterRole === 'superuser' ? (bodyBranchId ?? null) : req.user?.bran_id;
+            const bran_id = requesterRole === 'superuser' || requesterRole === 'admin'
+                ? (bodyBranchId ?? null)
+                : req.user?.bran_id;
             console.log(company_id)
             console.log(bran_id)
             if (

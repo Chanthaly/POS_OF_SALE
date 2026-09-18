@@ -175,6 +175,9 @@ export const EditCPN = async (req: Request, res: Response) => {
   }
 
   try {
+    if (req.user?.user_role !== 'superuser' && Number(company_id) !== Number(req.user?.company_id)) {
+      return res.status(403).json({ resultCode: 403, message: 'Forbidden' });
+    }
     const sql = `
       UPDATE company
       SET COMPANY_NAME = ?,

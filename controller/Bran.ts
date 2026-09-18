@@ -36,6 +36,10 @@ export const  getBranall = async (
     if (!isSuperuser) {
       sql += ` WHERE company_id = ?`;
       params.push(req.user!.company_id!);
+      if (req.user?.user_role === 'manager') {
+        sql += ` AND bran_id = ?`;
+        params.push(req.user!.bran_id!);
+      }
     }
 
     // // Search username
@@ -95,6 +99,9 @@ export const  getBranall = async (
 
   if (req.user?.user_role !== 'superuser' && !req.user?.company_id) {
     return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+  }
+  if (req.user?.user_role === 'manager' && Number(bran_id) !== Number(req.user?.bran_id)) {
+    return res.status(403).json({ resultCode: 403, message: 'Branch access denied' });
   }
   const scopeSql = req.user?.user_role === 'superuser' ? '' : ' AND company_id = ?';
   const params = req.user?.user_role === 'superuser' ? [bran_id] : [bran_id, req.user!.company_id!];

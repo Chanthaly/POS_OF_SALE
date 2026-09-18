@@ -24,6 +24,7 @@ export const getUsers = async (
   try {
     const { search } = req.query;
     const isSuperuser = req.user?.user_role === 'superuser';
+    const isBranchManager = req.user?.user_role === 'manager';
     const companyId = req.user?.company_id;
     const branchId = req.user?.bran_id;
 
@@ -47,7 +48,7 @@ export const getUsers = async (
       sql += ` WHERE company_id = ?`;
       params.push(companyId!);
     }
-    if (!isSuperuser && branchId) {
+    if (!isSuperuser && isBranchManager && branchId) {
       sql += ` AND bran_id = ?`;
       params.push(branchId);
     }
@@ -110,8 +111,9 @@ type  UserID = {
         if (!isSuperuser && !companyId) {
           return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
         }
-        const scopeSql = !isSuperuser && branchId ? ' AND company_id = ? AND bran_id = ?' : !isSuperuser ? ' AND company_id = ?' : '';
-        const scopeParams = !isSuperuser && branchId ? [user_id, companyId, branchId] : !isSuperuser ? [user_id, companyId] : [user_id];
+        const isBranchManager = req.user?.user_role === 'manager';
+        const scopeSql = !isSuperuser && isBranchManager && branchId ? ' AND company_id = ? AND bran_id = ?' : !isSuperuser ? ' AND company_id = ?' : '';
+        const scopeParams = !isSuperuser && isBranchManager && branchId ? [user_id, companyId, branchId] : !isSuperuser ? [user_id, companyId] : [user_id];
         const [result] = await WaitTransition.promise().query<User[]>(
           `SELECT * FROM users WHERE user_id = ?${scopeSql}`,
           scopeParams
@@ -170,8 +172,9 @@ if(!username || !password ||  !updated_at || !role || !['user','admin','superuse
   try{
     const isSuperuser = req.user?.user_role === 'superuser';
 
+    const isBranchManager = req.user?.user_role === 'manager';
     const scopedCompanyId = isSuperuser ? company_id : req.user?.company_id;
-    const scopedBranchId = isSuperuser ? bran_id : req.user?.bran_id;
+    const scopedBranchId = isSuperuser ? bran_id : isBranchManager ? req.user?.bran_id : null;
     if (!isSuperuser && !scopedCompanyId) {
       return res.status(403).json({ resultCode: 403, message: 'User company is not assigned or does not match owner company' });
     }
@@ -194,7 +197,7 @@ if(!username || !password ||  !updated_at || !role || !['user','admin','superuse
     if (!isSuperuser) {
       scopeSql += ' AND COMPANY_ID = ?';
       params.push(scopedCompanyId!);
-      if (scopedBranchId) {
+      if (isBranchManager && scopedBranchId) {
         scopeSql += ' AND BRAN_ID = ?';
         params.push(scopedBranchId);
       }

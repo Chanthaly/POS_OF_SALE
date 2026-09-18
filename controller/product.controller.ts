@@ -20,7 +20,8 @@ const positiveInt = (value: unknown): number | null => {
 
 const branchScope = (req: Request, requestedBranchId?: unknown) => {
   const isSuperuser = req.user?.user_role === 'superuser';
-  const branchId = isSuperuser ? positiveInt(requestedBranchId) : positiveInt(req.user?.bran_id);
+  const isBranchManager = req.user?.user_role === 'manager';
+  const branchId = isSuperuser || isBranchManager ? positiveInt(isSuperuser ? requestedBranchId : req.user?.bran_id) : null;
   const companyId = positiveInt(req.user?.company_id);
   if (!isSuperuser && !companyId) return null;
   if (isSuperuser && requestedBranchId !== undefined && !branchId) return null;
@@ -111,7 +112,7 @@ export const addProduct = async (req: Request, res: Response) => {
   } = req.body as Partial<Product> & { Ptype_id?: unknown; productTypeId?: unknown };
   const scope = branchScope(req);
   if (!scope) return res.status(403).json({ resultCode: 403, message: 'User scope is not assigned' });
-  const targetBranchId = scope.isSuperuser ? positiveInt(bodyBranchId) : scope.branchId;
+  const targetBranchId = scope.isSuperuser || req.user?.user_role === 'admin' ? positiveInt(bodyBranchId) : scope.branchId;
   const productTypeId = positiveInt(pty_id ?? bodyProductTypeId ?? requestProductTypeId);
   if (!targetBranchId) {
     return res.status(403).json({ resultCode: 403, message: 'User branch is not assigned' });
@@ -147,9 +148,16 @@ export const updateProduct = async (req: Request, res: Response) => {
     return res.status(400).json({ resultCode: 400, message: serviceMessage.DATA_NOT_EXIST });
   }
   try {
+    const [targetBranch] = await WaitTransition.promise().query<RowDataPacket[]>(
+      'SELECT bran_id FROM branc WHERE bran_id = ? AND company_id = ?',
+      [targetBranchId, scope.companyId]
+    );
+    if (!targetBranch.length) {
+      return res.status(403).json({ resultCode: 403, message: 'Branch is outside your company' });
+    }
     const params: (string | number | null)[] = [p_name.trim(), p_code.trim(), p_img ?? null, productTypeId, targetBranchId, productId];
     let sql = 'UPDATE product SET p_name = ?, p_code = ?, p_img = ?, pty_id = ?, bran_id = ? WHERE p_id = ?';
-    if (!scope.isSuperuser && scope.companyId) {
+    if (!scope.isSuperuser && scope.companyId && req.user?.user_role === 'manager') {
       sql += ' AND bran_id IN (SELECT bran_id FROM branc WHERE company_id = ?)';
       params.push(scope.companyId);
     }
@@ -168,7 +176,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const params: number[] = [productId];
     let sql = 'DELETE FROM product WHERE p_id = ?';
-    if (!scope.isSuperuser && scope.companyId) {
+    if (!scope.isSuperuser && scope.companyId && req.user?.user_role === 'manager') {
       sql += ' AND bran_id IN (SELECT bran_id FROM branc WHERE company_id = ?)';
       params.push(scope.companyId);
     }

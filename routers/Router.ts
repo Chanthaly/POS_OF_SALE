@@ -29,13 +29,13 @@ router.put("/updateusers/:user_id", verifyJWT, EditUser)
 router.get('/getcompanys', verifyJWT,checkCompanyActive,getCompanys)
 router.get('/getcompany/:company_id', verifyJWT,checkCompanyActive, getCompanyID)
 router.post('/addcompanydata', verifyJWT, requireRole('superuser'), checkCompanyActive, AddCompanyDATA) 
-router.put('/updatecompany/:company_id', verifyJWT, requireRole('superuser'), EditCPN)
+router.put('/updatecompany/:company_id', verifyJWT, requireRole('superuser', 'admin'), EditCPN)
 
 // branc 
 router.get('/getbrans', verifyJWT, getBranall)
 router.get('/getbran/:bran_id', verifyJWT, getBranID)
 
-router.post('/postbran', verifyJWT, requireRole('superuser'), Addbran)
+router.post('/postbran', verifyJWT, requireRole('superuser', 'admin'), Addbran)
 
 // Product routes. Branch users are scoped to their own branch.
 router.get('/products', verifyJWT, getProducts)
@@ -64,6 +64,6 @@ router.delete('/productprices/:price_id', verifyJWT, requireRole('superuser', 'a
 
 // Head office creates transfers; the destination branch receives them.
 router.get('/transfers', verifyJWT, getTransfers)
-router.post('/transfers', verifyJWT, requireRole('superuser'), createTransfer)
+router.post('/transfers', verifyJWT, requireRole('superuser', 'admin'), createTransfer)
 router.post('/transfers/:tr_id/receive', verifyJWT, requireRole('superuser', 'user', 'admin', 'manager', 'staff'), receiveTransfer)
-router.post('/transfers/:tr_id/cancel', verifyJWT, requireRole('superuser'), cancelTransfer)
+router.post('/transfers/:tr_id/cancel', verifyJWT, requireRole('superuser', 'admin'), cancelTransfer)

@@ -29,6 +29,7 @@ const companyForBranch = async (branchId: number) => {
 export const getTransfers = async (req: Request, res: Response) => {
   try {
     const isSuperuser = req.user?.user_role === 'superuser';
+    const isAdmin = req.user?.user_role === 'admin';
     const companyId = positiveInt(req.user?.company_id);
     const branchId = positiveInt(req.user?.bran_id);
     if (!isSuperuser && (!companyId || !branchId)) return res.status(403).json({ resultCode: 403, message: 'User scope is not assigned' });
@@ -38,7 +39,7 @@ export const getTransfers = async (req: Request, res: Response) => {
     if (!isSuperuser) {
       sql += ' WHERE fb.company_id = ?';
       params.push(companyId!);
-      if (branchId) {
+      if (!isAdmin && branchId) {
         sql += ' AND (t.from_branch_id = ? OR t.to_branch_id = ?)';
         params.push(branchId, branchId);
       }
@@ -62,7 +63,7 @@ export const createTransfer = async (req: Request, res: Response) => {
   if (items.some((item) => !positiveInt(item.product_id) || !positiveInt(item.quantity))) {
     return res.status(400).json({ resultCode: 400, message: 'Each item needs a positive product_id and quantity' });
   }
-  if (req.user?.user_role !== 'superuser') {
+    if (req.user?.user_role !== 'superuser' && req.user?.user_role !== 'admin') {
     return res.status(403).json({ resultCode: 403, message: 'Only head office can create transfers' });
   }
 
@@ -71,6 +72,9 @@ export const createTransfer = async (req: Request, res: Response) => {
     const toBranch = await companyForBranch(toBranchId);
     if (!fromBranch || !toBranch) {
       return res.status(403).json({ resultCode: 403, message: 'Both branches must belong to the same company' });
+    }
+    if (req.user?.user_role === 'admin' && fromBranch.company_id !== Number(req.user.company_id)) {
+      return res.status(403).json({ resultCode: 403, message: 'Branches are outside your company' });
     }
     const productIds = items.map((item) => item.product_id);
     const productPlaceholders = productIds.map(() => '?').join(',');
@@ -109,12 +113,26 @@ const updateTransferStatus = async (req: Request, res: Response, status: 'receiv
   if (!transferId) return res.status(400).json({ resultCode: 400, message: serviceMessage.ID_NOT_FOUND });
   const branchId = positiveInt(req.user?.bran_id);
   const isSuperuser = req.user?.user_role === 'superuser';
+  const isAdmin = req.user?.user_role === 'admin';
   if (status === 'received' && !isSuperuser && !branchId) return res.status(403).json({ resultCode: 403, message: 'Branch user is not assigned' });
   try {
+    if (isAdmin) {
+      const [companyTransfers] = await WaitTransition.promise().query<RowDataPacket[]>(
+        `SELECT t.tr_id
+         FROM st_transfers t
+         INNER JOIN branc fb ON fb.bran_id = t.from_branch_id
+         INNER JOIN branc tb ON tb.bran_id = t.to_branch_id
+         WHERE t.tr_id = ? AND fb.company_id = ? AND tb.company_id = ?`,
+        [transferId, req.user?.company_id, req.user?.company_id]
+      );
+      if (!companyTransfers.length) {
+        return res.status(403).json({ resultCode: 403, message: 'Transfer is outside your company' });
+      }
+    }
     const result = await withTransaction(async (connection) => {
       const [updated] = await connection.query(
           status === 'received'
-           ? isSuperuser
+            ? isSuperuser || isAdmin
             ? `UPDATE st_transfers SET status = 'received', received_by = ?, updated_at = NOW()
               WHERE tr_id = ? AND status IN ('panding', 'in_transit')`
             : `UPDATE st_transfers SET status = 'received', received_by = ?, updated_at = NOW()

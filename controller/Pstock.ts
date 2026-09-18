@@ -18,8 +18,9 @@ type ProductStock = RowDataPacket & {
 
 type StockScope = {
   userId: number;
-  branchId: number;
+  branchId: number | null;
   companyId: number;
+  isBranchManager: boolean;
 };
 
 const positiveInt = (value: unknown): number | null => {
@@ -36,8 +37,9 @@ const tokenScope = (req: Request): StockScope | null => {
   const userId = positiveInt(req.user?.user_id);
   const branchId = positiveInt(req.user?.bran_id);
   const companyId = positiveInt(req.user?.company_id);
-  if (!userId || !branchId || !companyId) return null;
-  return { userId, branchId, companyId };
+  const isBranchManager = req.user?.user_role === 'manager';
+  if (!userId || !companyId || (isBranchManager && !branchId)) return null;
+  return { userId, branchId: isBranchManager ? branchId : null, companyId, isBranchManager };
 };
 
 const productInScope = async (pId: number, scope: StockScope) => {
@@ -45,8 +47,8 @@ const productInScope = async (pId: number, scope: StockScope) => {
     `SELECT p.p_id
   FROM product p
   INNER JOIN branc b ON b.bran_id = p.bran_id
-  WHERE p.p_id = ? AND p.bran_id = ? AND b.company_id = ?`,
-    [pId, scope.branchId, scope.companyId]
+  WHERE p.p_id = ? AND b.company_id = ? AND (? IS NULL OR p.bran_id = ?)`,
+    [pId, scope.companyId, scope.branchId, scope.branchId]
   );
   return rows.length > 0;
 };
@@ -63,9 +65,9 @@ export const getPstock = async (req: Request, res: Response) => {
   FROM p_stock s
   INNER JOIN product p ON p.p_id = s.p_id
   INNER JOIN branc b ON b.bran_id = p.bran_id
-  WHERE p.bran_id = ? AND b.company_id = ?
+  WHERE b.company_id = ? AND (? IS NULL OR p.bran_id = ?)
   ORDER BY s.stock_id DESC`,
-      [scope.branchId, scope.companyId]
+      [scope.companyId, scope.branchId, scope.branchId]
     );
     return res.status(200).json({ resultCode: 200, message: serviceMessage.SUCCESS, data: rows });
   } catch (err) {
@@ -121,8 +123,8 @@ export const updatePstock = async (req: Request, res: Response) => {
        INNER JOIN branc b ON b.bran_id = p.bran_id
        SET s.stock_amount = ?, s.user_id = ?
        WHERE s.stock_id = ? AND s.p_id = p.p_id
-         AND p.bran_id = ? AND b.company_id = ?`,
-      [productId, stockAmount, scope.userId, stockId, scope.branchId, scope.companyId]
+        AND b.company_id = ? AND (? IS NULL OR p.bran_id = ?)`,
+      [productId, stockAmount, scope.userId, stockId, scope.companyId, scope.branchId, scope.branchId]
     );
     if (!result.affectedRows) return res.status(404).json({ resultCode: 404, message: serviceMessage.DATA_NOT_FOUND });
     return res.status(200).json({ resultCode: 200, message: serviceMessage.OPERATION_SUCESS });
@@ -143,8 +145,8 @@ export const deletePstock = async (req: Request, res: Response) => {
       `DELETE s FROM p_stock s
        INNER JOIN product p ON p.p_id = s.p_id
        INNER JOIN branc b ON b.bran_id = p.bran_id
-       WHERE s.stock_id = ? AND p.bran_id = ? AND b.company_id = ?`,
-      [stockId, scope.branchId, scope.companyId]
+      WHERE s.stock_id = ? AND b.company_id = ? AND (? IS NULL OR p.bran_id = ?)`,
+          [stockId, scope.companyId, scope.branchId, scope.branchId]
     );
     if (!result.affectedRows) return res.status(404).json({ resultCode: 404, message: serviceMessage.DATA_NOT_FOUND });
     return res.status(200).json({ resultCode: 200, message: serviceMessage.OPERATION_SUCESS });
