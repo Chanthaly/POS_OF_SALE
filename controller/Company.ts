@@ -22,7 +22,7 @@ export const getCompanys = async (
 
     const isSuperuser = req.user?.user_role === 'superuser';
     if (!isSuperuser && !req.user?.company_id) {
-      return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+      return res.status(403).json({ resultCode: 403, message: serviceMessage.USER_COMPANY_NOT_ASSIGNED });
     }
     if (!isSuperuser) {
       sql += ` WHERE company_id = ?`;
@@ -42,7 +42,14 @@ export const getCompanys = async (
 
     const [rows] = await WaitTransition
       .promise()
-      .query(sql, params);
+      .query<RowDataPacket[]>(sql, params);
+    if (typeof search === 'string' && search.trim() !== '' && !rows.length) {
+      return res.status(404).json({
+        resultCode: 404,
+        message: serviceMessage.DATA_NOT_FOUND,
+        data: [],
+      });
+    }
     return res.status(200).json({
       resultCode: 200,
       message: serviceMessage.SUCCESS,
@@ -68,6 +75,7 @@ type CompanyData   = RowDataPacket  & {
    c_status:   Status,
     created_at: string,
     updated_at: string,
+    company_logo: string | null,
      companyID: CompanyID
 }
  export  const  getCompanyID = async (req:Request,res:Response) => {
@@ -85,7 +93,7 @@ type CompanyData   = RowDataPacket  & {
 
         const requesterCompanyId = req.user?.company_id;
         if (req.user?.user_role !== 'superuser' && (!requesterCompanyId || requesterCompanyId !== Number(company_id))) {
-          return res.status(403).json({ resultCode: 403, message: 'Forbidden' });
+          return res.status(403).json({ resultCode: 403, message: serviceMessage.FORBIDDEN });
         }
         const [result] = await WaitTransition.promise().query<CompanyData[]>("SELECT * FROM company WHERE company_id = ?",[company_id]);
         if(!result || result.length <= 0) {
@@ -113,10 +121,6 @@ type CompanyData   = RowDataPacket  & {
 }
 export const  AddCompanyDATA  = async (req:Request, res:Response) => {
 const  { company_name,c_status,created_at }  = req.body as CompanyData;
-
-      console.log(company_name)
-      console.log(c_status)
-      console.log(created_at)
 // if(!company_name || !c_status || !created_at ) {
 //   return res.status(402).json({
 //     resultCode:402,
@@ -126,20 +130,20 @@ const  { company_name,c_status,created_at }  = req.body as CompanyData;
   
   try{
 
-     const sql   =  ` INSERT INTO company (company_name,c_status,created_at) values(?,?,?)` ;
-      const params = [ company_name,c_status,created_at,]
-     const data  = await WaitTransition.promise().query(sql,params)
-     if(!data)
-     {
-      return res.status(401).json({
-        resultCode:401,
-        message:serviceMessage.OPERATION_FAILE 
-      })
-     }
-     res.status(201).json({
+     const companyLogo = req.file ? `/uploads/${req.file.filename}` : null;
+     const sql = `INSERT INTO company (company_name,c_status,created_at,company_logo) VALUES(?,?,?,?)`;
+     const [data] = await WaitTransition.promise().query<ResultSetHeader>(sql, [
+       company_name,
+       c_status,
+       created_at,
+       companyLogo,
+     ]);
+     return res.status(201).json({
       resultCode:201,
-      meesage:serviceMessage.OPERATION_SUCESS
-     })
+      message:serviceMessage.OPERATION_SUCESS,
+      company_logo: companyLogo,
+      company_id: data.insertId,
+     });
 
   }catch(err)
   {
@@ -176,22 +180,25 @@ export const EditCPN = async (req: Request, res: Response) => {
 
   try {
     if (req.user?.user_role !== 'superuser' && Number(company_id) !== Number(req.user?.company_id)) {
-      return res.status(403).json({ resultCode: 403, message: 'Forbidden' });
+      return res.status(403).json({ resultCode: 403, message: serviceMessage.FORBIDDEN });
     }
-    const sql = `
+    const params: (string | number)[] = [
+      company_name,
+      c_status,
+      updated_at,
+    ];
+    let sql = `
       UPDATE company
       SET COMPANY_NAME = ?,
           C_STATUS = ?,
           UPDATED_AT = ?
-      WHERE COMPANY_ID = ?
     `;
-
-    const params = [
-      company_name,
-      c_status,
-      updated_at,
-      company_id
-    ];
+    if (req.file) {
+      sql += ', COMPANY_LOGO = ?';
+      params.push(`/uploads/${req.file.filename}`);
+    }
+    sql += ' WHERE COMPANY_ID = ?';
+    params.push(company_id);
 
     const [data] = await WaitTransition
       .promise()
@@ -206,7 +213,8 @@ export const EditCPN = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       resultCode: 200,
-      message: serviceMessage.OPERATION_SUCESS
+      message: serviceMessage.OPERATION_SUCESS,
+      ...(req.file ? { company_logo: `/uploads/${req.file.filename}` } : {}),
     });
 
   } catch (err) {

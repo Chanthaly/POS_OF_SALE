@@ -1,37 +1,99 @@
- type ServiceMessage = {
-    DATA_NOT_FOUND: string;
-    DATA_NOT_EXIST: string;
-    USER_NOT_FOUND: string;
-    SERVER_ERROR: string;
-    SUCCESS: string;
-    USER_ALREADY_EXIST: string;
-    DATA_ALREADY_EXIST: string;
-    DATABASE_CONNECTION_ERROR?: string;
-    DATABASE_CONNECTION_SUCCESS?: string;
-    ID_NOT_FOUND?: string;
-    USER_NOTEXIT: string;
-    OPERATION_FAILE: string
-    OPERATION_SUCESS: string
+export const serviceMessage = {
+  DATA_NOT_FOUND: "DATA NOT FOUND",
+  DATA_NOT_EXIST: "DATA NOT EXIST",
+  USER_NOT_FOUND: "USER NOT FOUND",
+  SERVER_ERROR: "SERVER ERROR",
+  SUCCESS: "SUCCESS",
+  USER_ALREADY_EXIST: "USER ALREADY EXIST",
+  DATA_ALREADY_EXIST: "DATA ALREADY EXIST",
+  DATABASE_CONNECTION_ERROR: "DATABASE CONNECTION ERROR",
+  DATABASE_CONNECTION_SUCCESS: "DATABASE CONNECTION SUCCESS",
+  ID_NOT_FOUND: "ID NOT FOUND",
+  USER_NOTEXIT: "USER_NOTEXIT",
+  OPERATION_FAILE: "OPERATION_FAILE",
+  OPERATION_SUCESS: "OPERATION_SUCCESS",
 
- }
+  // Authorization and account messages
+  USER_SCOPE_NOT_ASSIGNED: "User scope is not assigned",
+  USER_COMPANY_NOT_ASSIGNED: "User company is not assigned",
+  USER_COMPANY_MISMATCH: "User company is not assigned or does not match",
+  USER_COMPANY_OWNER_MISMATCH: "User company is not assigned or does not match owner company",
+  USER_BRANCH_NOT_ASSIGNED: "User branch is not assigned",
+  BRANCH_USER_NOT_ASSIGNED: "Branch user is not assigned",
+  INVALID_BRANCH_SCOPE: "Invalid branch scope",
+  BRANCH_ACCESS_DENIED: "Branch access denied",
+  FORBIDDEN: "Forbidden",
+  INSUFFICIENT_PERMISSIONS: "Forbidden: insufficient permissions",
+  UNAUTHORIZED: "Unauthorized",
+  TOKEN_NOT_FOUND: "Token not found",
+  INVALID_OR_EXPIRED_TOKEN: "Invalid or expired token",
+  ONLY_ADMIN_OR_SUPERUSER_CAN_REGISTER_USERS: "Only admin or superuser can register users",
+  ONLY_HEAD_OFFICE_CAN_CREATE_TRANSFERS: "Only head office can create transfers",
 
-export const serviceMessage:ServiceMessage = {
-    DATA_NOT_FOUND: "DATA NOT FOUND",
-    DATA_NOT_EXIST: "DATA NOT EXIST",
-    USER_NOT_FOUND: "USER NOT FOUND",
-    SERVER_ERROR: "SERVER ERROR",
-    SUCCESS: "SUCCESS",
-    USER_ALREADY_EXIST: "USER ALREADY EXIST",
-    DATA_ALREADY_EXIST: "DATA ALREADY EXIST",
-    DATABASE_CONNECTION_ERROR: "DATABASE CONNECTION ERROR",
-    DATABASE_CONNECTION_SUCCESS: "DATABASE CONNECTION SUCCESS",
-    ID_NOT_FOUND: "ID NOT FOUND",
-    USER_NOTEXIT:"USER_NOTEXIT",
-    OPERATION_FAILE:"OPERATION_FAILE",
-    OPERATION_SUCESS:"OPERATION_SUCCESS",
+  // Company and login messages
+  USERNAME_REQUIRED: "Username required",
+  INVALID_COMPANY_ID: "Invalid company_id",
+  VALID_COMPANY_ID_REQUIRED: "A valid company_id is required",
+  COMPANY_USER_COMPANY_ID_REQUIRED: "company_id is required for company users",
+  COMPANY_NOT_ASSIGNED: "Company not assigned",
+  COMPANY_NOT_FOUND: "Company not found",
+  COMPANY_INACTIVE: "Company is inactive",
+  USER_COMPANY_OR_BRANCH_NOT_ASSIGNED: "USER COMPANY OR BRANCH NOT ASSIGNED",
+  USER_INACTIVE: "User is inactive",
+  USER_NOT_FOUND_RESPONSE: "User not found",
+  SERVER_ERROR_RESPONSE: "Server error",
+  DATABASE_ERROR: "DATABASE ERROR",
+  INVALID_PASSWORD: "INVALID PASSWORD",
+  MULTIPLE_USERS_MATCH_CREDENTIALS: "Username and password match multiple users",
 
+  // Branch and product messages
+  BRANCH_DOES_NOT_BELONG_TO_OWNER_COMPANY: "Branch does not belong to owner company",
+  BRANCH_REQUIRES_COMPANY: "A branch requires a company",
+  BRANCHES_OUTSIDE_COMPANY: "Branches are outside your company",
+  BRANCH_OUTSIDE_COMPANY: "Branch is outside your company",
+  PRODUCT_OUTSIDE_BRANCH: "Product is outside your branch",
+  PRODUCT_TYPE_FIELDS_REQUIRED: "Ptype_name and p_id are required",
+  PRODUCT_TYPE_UPDATE_FIELDS_REQUIRED: "Ptype_id, Ptype_name and p_id are required",
+  PRODUCT_FIELDS_REQUIRED: "p_name, p_code, product type ID, valid product_size_id and a positive items_per_pack are required",
+  INVALID_PRODUCT_DATE_RANGE: "start_date and end_date must be valid YYYY-MM-DD dates, with start_date on or before end_date",
+  PRODUCT_SIZE_ID_NOT_FOUND: "product_size_id does not exist",
+  PRICE_CREATE_FIELDS_REQUIRED: "p_id and all price fields are required",
+  PRICE_UPDATE_FIELDS_REQUIRED: "price_id, p_id and all price fields are required",
+  PRODUCT_SIZE_FIELDS_REQUIRED: "A positive size_value and size_unit (ml, l, or mm) are required",
+  PRODUCT_SIZE_ALREADY_EXISTS: "This product size already exists",
+  PRODUCT_SIZE_IN_USE: "Cannot delete a product size while it is assigned to products",
 
+  // Stock messages
+  STOCK_CREATE_FIELDS_REQUIRED: "stock_amount (individual items) and p_id are required",
+  STOCK_UPDATE_FIELDS_REQUIRED: "stock_id, stock_amount (individual items) and p_id are required",
+  STOCK_ALREADY_EXISTS: "Stock for this product already exists",
 
+  // Tax messages
+  INVALID_TAX_DATA: "Invalid tax data",
+  TAX_OUTSIDE_COMPANY: "Tax is outside your company",
 
+  // Transfer messages
+  DIFFERENT_TRANSFER_BRANCHES_AND_ITEMS_REQUIRED: "Different branches and items are required",
+  TRANSFER_PRODUCT_FIELDS_REQUIRED: "Each item needs a positive product_id and quantity",
+  BOTH_BRANCHES_SAME_COMPANY_REQUIRED: "Both branches must belong to the same company",
+  EVERY_PRODUCT_SOURCE_BRANCH_REQUIRED: "Every product must belong to the source branch",
+  DESTINATION_BRANCH_USER_REQUIRED: "A destination-branch user account is required to receive transfers",
+  TRANSFER_NOT_FOUND: "Transfer not found",
+  TRANSFER_OUTSIDE_ASSIGNED_SCOPE: "Transfer is outside your assigned scope",
+  ONLY_DESTINATION_BRANCH_CAN_RECEIVE: "Only the destination branch can receive this transfer",
+  TRANSFER_NO_VALID_PRODUCTS_TO_RECEIVE: "Transfer has no valid products to receive",
+  TRANSFER_STATUS_ACTION_NOT_ALLOWED: "Transfer status does not allow this action",
+  TRANSFER_STATUS_DISPATCH_NOT_ALLOWED: "Transfer status does not allow dispatch",
+  INSUFFICIENT_SOURCE_BRANCH_STOCK: "Source branch has insufficient stock for this transfer",
 
-}
+  // Upload messages
+  IMAGE_REQUIRED: 'Image file is required in the "image" field',
+  IMAGE_UPLOADED_SUCCESSFULLY: "Image uploaded successfully",
+  IMAGE_TYPES_NOT_ALLOWED: "Only JPEG, PNG, WEBP, and GIF images are allowed",
+  IMAGE_SIZE_LIMIT: "Image size must not exceed 5 MB",
+  IMAGE_UPLOAD_INVALID: "Invalid image upload",
+  UPLOAD_FILE_FIELD_MISSING: (fieldName: string) =>
+    `Multipart file field is missing. Send the image using the field name "${fieldName}"`,
+  UPLOAD_UNEXPECTED_FILE: (fieldName: string) =>
+    `Upload exactly one image using the field name "${fieldName}"`,
+} as const;

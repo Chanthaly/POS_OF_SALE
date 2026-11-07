@@ -1,6 +1,7 @@
 
   import  type { Request, Response, NextFunction } from "express";
 import { withTransaction } from "../dbconfig/configdb.js";
+  import { serviceMessage } from "../utils/service.Message.js";
 
 export const checkLoginCompanyActive = async (
   req: Request,
@@ -13,7 +14,7 @@ export const checkLoginCompanyActive = async (
     if (!username) {
       return res.status(401).json({
         resultCode: 401,
-        message: "Username required"
+        message: serviceMessage.USERNAME_REQUIRED
       });
     }
 
@@ -23,7 +24,7 @@ export const checkLoginCompanyActive = async (
     if (companyId !== null && (!Number.isInteger(companyId) || companyId <= 0)) {
       return res.status(400).json({
         resultCode: 400,
-        message: "Invalid company_id"
+        message: serviceMessage.INVALID_COMPANY_ID
       });
     }
 
@@ -48,7 +49,7 @@ export const checkLoginCompanyActive = async (
     if (!rows.length) {
       return res.status(422).json({
         resultCode: 422,
-        message: "User not found"
+        message: serviceMessage.USER_NOT_FOUND_RESPONSE
       });
     }
 
@@ -57,7 +58,7 @@ export const checkLoginCompanyActive = async (
     if (user.role !== "superuser" && companyId === null) {
       return res.status(400).json({
         resultCode: 400,
-        message: "company_id is required for company users"
+        message: serviceMessage.COMPANY_USER_COMPANY_ID_REQUIRED
       });
     }
 
@@ -69,14 +70,14 @@ export const checkLoginCompanyActive = async (
     if (!user.company_id) {
       return res.status(403).json({
         resultCode: 403,
-        message: "Company not assigned"
+        message: serviceMessage.COMPANY_NOT_ASSIGNED
       });
     }
 
     if (user.c_status !== "active") {
       return res.status(403).json({
         resultCode: 403,
-        message: "Company is inactive"
+        message: serviceMessage.COMPANY_INACTIVE
       });
     }
 
@@ -87,7 +88,7 @@ export const checkLoginCompanyActive = async (
 
     return res.status(500).json({
       resultCode: 500,
-      message: "Server error"
+      message: serviceMessage.SERVER_ERROR_RESPONSE
     });
   }
 };

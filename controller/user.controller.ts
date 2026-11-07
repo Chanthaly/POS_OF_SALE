@@ -29,7 +29,7 @@ export const getUsers = async (
     const branchId = req.user?.bran_id;
 
     if (!isSuperuser && !companyId) {
-      return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+      return res.status(403).json({ resultCode: 403, message: serviceMessage.USER_COMPANY_NOT_ASSIGNED });
     }
 
     let sql = `
@@ -109,7 +109,7 @@ type  UserID = {
         const companyId = req.user?.company_id;
         const branchId = req.user?.bran_id;
         if (!isSuperuser && !companyId) {
-          return res.status(403).json({ resultCode: 403, message: 'User company is not assigned' });
+          return res.status(403).json({ resultCode: 403, message: serviceMessage.USER_COMPANY_NOT_ASSIGNED });
         }
         const isBranchManager = req.user?.user_role === 'manager';
         const scopeSql = !isSuperuser && isBranchManager && branchId ? ' AND company_id = ? AND bran_id = ?' : !isSuperuser ? ' AND company_id = ?' : '';
@@ -176,7 +176,7 @@ if(!username || !password ||  !updated_at || !role || !['user','admin','superuse
     const scopedCompanyId = isSuperuser ? company_id : req.user?.company_id;
     const scopedBranchId = isSuperuser ? bran_id : isBranchManager ? req.user?.bran_id : null;
     if (!isSuperuser && !scopedCompanyId) {
-      return res.status(403).json({ resultCode: 403, message: 'User company is not assigned or does not match owner company' });
+      return res.status(403).json({ resultCode: 403, message: serviceMessage.USER_COMPANY_OWNER_MISMATCH });
     }
 
      const [duplicateUsers] = await WaitTransition.promise().query<RowDataPacket[]>(
@@ -231,5 +231,4 @@ if(!username || !password ||  !updated_at || !role || !['user','admin','superuse
    })
   }
 }
-
 

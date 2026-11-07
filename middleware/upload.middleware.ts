@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { serviceMessage } from '../utils/service.Message.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,15 +35,19 @@ export const uploadImage = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, callback) => {
     if (!allowedImageTypes.has(file.mimetype)) {
-      callback(new Error('Only JPEG, PNG, WEBP, and GIF images are allowed'));
+      callback(new Error(serviceMessage.IMAGE_TYPES_NOT_ALLOWED));
       return;
     }
     callback(null, true);
   },
 });
 
-export const handleImageUpload = (req: Request, res: Response, next: NextFunction) => {
-  uploadImage.single('image')(req, res, (error: unknown) => {
+const handleSingleImageUpload = (fieldName: string) => (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  uploadImage.single(fieldName)(req, res, (error: unknown) => {
     if (!error) {
       next();
       return;
@@ -50,9 +55,9 @@ export const handleImageUpload = (req: Request, res: Response, next: NextFunctio
 
     if (error instanceof multer.MulterError) {
       const message = error.code === 'LIMIT_FILE_SIZE'
-        ? 'Image size must not exceed 5 MB'
+        ? serviceMessage.IMAGE_SIZE_LIMIT
         : error.code === 'LIMIT_UNEXPECTED_FILE'
-          ? 'Upload exactly one image using the field name "image"'
+          ? serviceMessage.UPLOAD_UNEXPECTED_FILE(fieldName)
           : error.message;
       res.status(400).json({ resultCode: 400, message });
       return;
@@ -61,14 +66,17 @@ export const handleImageUpload = (req: Request, res: Response, next: NextFunctio
     if (error instanceof Error && error.message === 'Field name missing') {
       res.status(400).json({
         resultCode: 400,
-        message: 'Multipart file field is missing. Send the image using the field name "image"',
+        message: serviceMessage.UPLOAD_FILE_FIELD_MISSING(fieldName),
       });
       return;
     }
 
     res.status(400).json({
       resultCode: 400,
-      message: error instanceof Error ? error.message : 'Invalid image upload',
+      message: error instanceof Error ? error.message : serviceMessage.IMAGE_UPLOAD_INVALID,
     });
   });
 };
+
+export const handleImageUpload = handleSingleImageUpload('image');
+export const handleCompanyLogoUpload = handleSingleImageUpload('logo');

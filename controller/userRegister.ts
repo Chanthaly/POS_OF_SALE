@@ -25,7 +25,6 @@ type User = RowDataPacket & {
 
 export const LoginUser = async (req: Request, res: Response) => {
     const { username, password } = (req.body ?? {}) as Partial<User>
-                console.log(username)
     if (!username || !password) {
         return res.status(401).json({
             resultCode: 401,
@@ -58,13 +57,13 @@ export const LoginUser = async (req: Request, res: Response) => {
         if (matchingUsers.length === 0) {
             return res.status(401).json({
                 resultCode: 401,
-                message: 'INVALID PASSWORD'
+                message: serviceMessage.INVALID_PASSWORD
             });
         }
         if (matchingUsers.length > 1) {
             return res.status(409).json({
                 resultCode: 409,
-                message: 'Username and password match multiple users'
+                message: serviceMessage.MULTIPLE_USERS_MATCH_CREDENTIALS
             });
         }
 
@@ -75,16 +74,19 @@ export const LoginUser = async (req: Request, res: Response) => {
                 message: serviceMessage.USER_NOT_FOUND
             });
         }
-                   
-      console.log( "company_id =>",user.company_id)
-        if( user.role  !== 'superuser') {
 
-            
-            console.log( "bran_id =>",user.bran_id)
+        if (user.status !== 'active') {
+            return res.status(401).json({
+                resultCode: 401,
+                message: serviceMessage.USER_INACTIVE
+            });
+        }
+
+        if( user.role  !== 'superuser') {
             if (user.company_id === null || user.bran_id === null) {
                 return res.status(422).json({
                     resultCode: 422,
-                    message: 'USER COMPANY OR BRANCH NOT ASSIGNED'
+                    message: serviceMessage.USER_COMPANY_OR_BRANCH_NOT_ASSIGNED
                 });
             }
            
@@ -92,7 +94,7 @@ export const LoginUser = async (req: Request, res: Response) => {
         if (user.role !== 'superuser' && user.c_status !== 'active') {
             return res.status(403).json({
                 resultCode: 403,
-                message: 'Company is inactive'
+                message: serviceMessage.COMPANY_INACTIVE
             });
         }
 
@@ -104,12 +106,6 @@ export const LoginUser = async (req: Request, res: Response) => {
             company_id: user.company_id,
 
         });
-        if(user.status === 'inactive') {
-            return res.status(401).json({
-                resultCode: 401,
-                message: "Adminblock user  plase tryagrin"
-            })
-        }
 
         return res.status(200).json({
             resultCode: 200,
@@ -128,7 +124,7 @@ export const LoginUser = async (req: Request, res: Response) => {
 
         return res.status(500).json({
             resultCode: 500,
-            message: 'DATABASE ERROR'
+            message: serviceMessage.DATABASE_ERROR
         });
     }
 };
@@ -147,11 +143,12 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
     message: serviceMessage.USER_NOTEXIT
   })
 }
+              //  ສິດໃນການເພີ່ມພະນັກງານ
             const requesterRole = req.user?.user_role;
             if (requesterRole !== 'admin'  && requesterRole !== 'superuser' && requesterRole !=='manager') {
                 return res.status(403).json({
                     resultCode: 403,
-                    message: 'Only admin or superuser can register users',
+                    message: serviceMessage.ONLY_ADMIN_OR_SUPERUSER_CAN_REGISTER_USERS,
                 });
             }
 
@@ -170,7 +167,7 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
             ) {
                 return res.status(401).json({
                     resultCode: 401,
-                    message: 'Unauthorized',
+                    message: serviceMessage.UNAUTHORIZED,
                 });
             }
   try{
@@ -180,11 +177,11 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
                 [bran_id, company_id]
             );
             if (!branchRows.length) {
-                return res.status(400).json({ resultCode: 400, message: 'Branch does not belong to owner company' });
+                return res.status(400).json({ resultCode: 400, message: serviceMessage.BRANCH_DOES_NOT_BELONG_TO_OWNER_COMPANY });
             }
         }
                 if (bran_id !== null && company_id === null) {
-                    return res.status(400).json({ resultCode: 400, message: 'A branch requires a company' });
+                    return res.status(400).json({ resultCode: 400, message: serviceMessage.BRANCH_REQUIRES_COMPANY });
                 }
      const B_KEY = bcry.genSaltSync(10)
     const  NewPsd  = bcry.hashSync(password,B_KEY)
@@ -212,5 +209,3 @@ if(!username || !password || !created_at || !role || !['user','admin','superuser
    })
   }
 }
-
-

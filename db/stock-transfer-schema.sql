@@ -1,3 +1,12 @@
+CREATE TABLE product_size (
+  product_size_id INT AUTO_INCREMENT PRIMARY KEY,
+  size_value DECIMAL(10, 3) NOT NULL,
+  size_unit VARCHAR(8) NOT NULL,
+  UNIQUE KEY uq_product_size_value_unit (size_value, size_unit),
+  CONSTRAINT chk_product_size_value CHECK (size_value > 0),
+  CONSTRAINT chk_product_size_unit CHECK (size_unit IN ('ml', 'l', 'mm'))
+);
+
 CREATE TABLE product (
   p_id INT AUTO_INCREMENT PRIMARY KEY,
   p_name VARCHAR(50) NOT NULL,
@@ -6,7 +15,11 @@ CREATE TABLE product (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   bran_id INT NOT NULL,
   pty_id INT NOT NULL,
+  items_per_pack INT NOT NULL DEFAULT 24,
+  product_size_id INT NULL,
   UNIQUE KEY uq_product_branch_code (bran_id, p_code),
+  KEY idx_product_size (product_size_id),
+  CONSTRAINT fk_product_size FOREIGN KEY (product_size_id) REFERENCES product_size (product_size_id),
   CONSTRAINT fk_product_branch FOREIGN KEY (bran_id) REFERENCES branc (bran_id)
 );
 
@@ -55,13 +68,18 @@ CREATE TABLE st_transfers (
   received_by INT NULL,
   status ENUM('panding', 'in_transit', 'received', 'cancelled') NOT NULL DEFAULT 'panding',
   transfer_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note VARCHAR(40) NULL,
+  note_dct VARCHAR(40) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_transfer_from_branch FOREIGN KEY (from_branch_id) REFERENCES branc (bran_id),
   CONSTRAINT fk_transfer_to_branch FOREIGN KEY (to_branch_id) REFERENCES branc (bran_id),
   CONSTRAINT fk_transfer_sender FOREIGN KEY (transferred_by) REFERENCES users (user_id),
   CONSTRAINT fk_transfer_receiver FOREIGN KEY (received_by) REFERENCES users (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS st_transfer_daily_sequence (
+  transfer_day DATE PRIMARY KEY,
+  last_number INT UNSIGNED NOT NULL
 );
 
 CREATE TABLE st_transers_items (

@@ -8,6 +8,7 @@ import type {
   Response,
   NextFunction,
 } from 'express';
+import { serviceMessage } from '../utils/service.Message.js';
 
 const JWT_SECRET = 'datetimenew----a@2026datnow--selectkey';
 
@@ -49,7 +50,7 @@ export const verifyJWT = (
   ) {
     return res.status(401).json({
       resultCode: 401,
-      message: 'Unauthorized',
+      message: serviceMessage.UNAUTHORIZED,
     });
   }
 
@@ -59,7 +60,7 @@ export const verifyJWT = (
   if (!token) {
     return res.status(401).json({
       resultCode: 401,
-      message: 'Token not found',
+      message: serviceMessage.TOKEN_NOT_FOUND,
     });
   }
 
@@ -77,7 +78,7 @@ export const verifyJWT = (
 
         return res.status(401).json({
           resultCode: 401,
-          message: 'Invalid or expired token',
+          message: serviceMessage.INVALID_OR_EXPIRED_TOKEN,
         });
       }
 
@@ -108,11 +109,10 @@ export const requireRole = (...allowedRoles: UserJwt['role'][]) => {
     if (!role || !allowedRoles.includes(role)) {
       return res.status(403).json({
         resultCode: 403,
-        message: 'Forbidden: insufficient permissions',
+        message: serviceMessage.INSUFFICIENT_PERMISSIONS,
       });
     }
 
     next();
   };
 };
-
